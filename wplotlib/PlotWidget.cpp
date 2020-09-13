@@ -2,13 +2,11 @@
 
 PlotWidget::PlotWidget(wxWindow *parent)
     : wxPanel(parent), _pDataSet(nullptr), _minval(0.0), _maxVal(0.0),
-      _nSamples(0), _sampleInterval(0.0), _timeWindow(0.0) {
+      _nSamples(0), _sampleInterval(0.0), _timeWindow(0.0),
+      _border(60, 15, 15, 30),
+      _grid(10, 10, wxColour(200, 200, 200), wxPenStyle::wxPENSTYLE_SHORT_DASH) {
 
   m_parent = parent;
-  _border.down = 30;
-  _border.left = 60;
-  _border.right = 15;
-  _border.up = 15;
 
   // Bind events
   Bind(wxEVT_PAINT, &PlotWidget::OnPaint, this);
@@ -43,7 +41,7 @@ void PlotWidget::setDataSet(PDataSet dataset) noexcept {
 PDataSet PlotWidget::getDataSet() noexcept { return _pDataSet; }
 
 void PlotWidget::OnSize(wxSizeEvent &event) {
-  caculatePixelCoordinates(GetSize(),_border);
+  caculatePixelCoordinates(GetSize(), _border);
   Refresh();
 }
 
@@ -59,14 +57,13 @@ void PlotWidget::OnPaint(wxPaintEvent &event) {
   // draw axis rectangle
   bdc.SetPen(wxPen(wxColour(0, 0, 0), 2)); // black
   bdc.SetBrush(wxBrush(wxColour(255, 255, 220)));
-  bdc.DrawRectangle(wxRect(_border.left, _border.up,
-                           _window_size.x - _border.right - _border.left,
-                           _window_size.y - _border.down - _border.up));
+  bdc.DrawRectangle(_border.left, _border.up, _window_size.x - _border.width,
+                    _window_size.y - _border.height);
 
   if (_pDataSet == nullptr)
     return;
 
-  // drawGrid(bdc, 10, 10, size);
+  drawGrid(bdc, _grid, _window_size, _border);
   drawData(bdc);
   drawCrosshair(bdc);
 }
@@ -116,24 +113,26 @@ void PlotWidget::drawCrosshair(wxBufferedDC &bdc) noexcept {
   bdc.CrossHair(_mouse_pos);
 }
 
-void PlotWidget::drawGrid(wxBufferedDC &bdc, int cols, int rows,
-                          const wxSize &windowSize, const PlotBorder & border) noexcept {
-  bdc.SetPen(wxPen(wxColour(200, 200, 200), 1, wxPENSTYLE_SHORT_DASH));
-  int rowSpacing = (windowSize.y - border.down - border.up) / rows;
-  int colSpacing = (windowSize.x - border.right - border.left) / cols;
-  int limit_x = windowSize.x - border.right;
-  int limit_y = windowSize.y - border.left;
-  int offset_x = border.left;
-  // draw rows
-  for (int i = 0; i < rows; i++) {
-    int offset_y = i * rowSpacing + border.up;
-    bdc.DrawLine(offset_x, offset_y, limit_x, offset_y);
+void PlotWidget::drawGrid(wxBufferedDC &bdc, const PlotGrid &grid,
+                          wxSize &windowSize,
+                          const PlotBorder &border) noexcept {
+  bdc.SetPen(wxPen(_grid.lineColor, 1, grid.penStyle));
+  const int yLenght = windowSize.y - border.height+border.up;
+  const int xLenght = windowSize.x - border.width +border.left;
+  const int xSpacing = xLenght / grid.cols;
+  const int ySpacing = yLenght / grid.rows;
+
+  wxPoint origin(border.left, border.up);
+
+  // draw cols;
+  for (int i = 0; i < grid.cols; i++) {
+    const int cx = origin.x + xSpacing * i;
+    bdc.DrawLine(cx, origin.y, cx, yLenght);
   }
 
-  // draw cols
-  int offset_y = border.up;
-  for (int i = 0; i < rows; i++) {
-    int offset_x = i * colSpacing + border.right;
-    bdc.DrawLine(offset_x, offset_y, offset_x, limit_y);
+  // draw rows
+  for (int i = 0; i < grid.rows; i++) {
+    const int cy = origin.y + ySpacing * i;
+    bdc.DrawLine(origin.x, cy, xLenght, cy);
   }
 }

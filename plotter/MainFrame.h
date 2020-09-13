@@ -14,4 +14,8 @@ private:
   PlotWidget *_plot;
 
   PDataSet createSineWave(double amplitute, double frequency, double phase, int samplesCount);
+
+
+  wxMenu *createMenu() noexcept;
+
 };

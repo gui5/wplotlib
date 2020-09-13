@@ -22,15 +22,19 @@ struct PlotStyle {
 };
 
 struct PlotBorder {
-  int left;
-  int right;
-  int up;
-  int down;
+  const int left;
+  const int right;
+  const int up;
+  const int down;
 
-  PlotBorder() : left(0), right(0), up(0), down(0) {}
+  const int width;
+  const int height;
+
+  PlotBorder() : left(0), right(0), up(0), down(0), width(0), height(0) {}
 
   PlotBorder(int left, int right, int up, int down)
-      : left(left), right(right), up(up), down(down) {}
+      : left(left), right(right), up(up), down(down), width(left + right),
+        height(up + down) {}
 
   ~PlotBorder() = default;
 };
@@ -38,8 +42,14 @@ struct PlotBorder {
 struct PlotGrid {
   int rows;
   int cols;
-  int rowsSpacing;
-  int colsSpacing;
+  wxColour lineColor;
+  wxPenStyle penStyle;
+
+  PlotGrid(int rows, int cols, const wxColour &lineColor,
+           const wxPenStyle &penStyle)
+      : rows(rows), cols(cols), lineColor(lineColor), penStyle(penStyle) {}
+
+  ~PlotGrid() = default;
 };
 
 // Limited lenght plot, use when the dataset have a known lenght;
@@ -54,17 +64,14 @@ public:
   void setDataSet(PDataSet dataset) noexcept;
   PDataSet getDataSet() noexcept;
 
-  // Event handlers
-  void OnSize(wxSizeEvent &event);
-  void OnPaint(wxPaintEvent &event);
-  void OnMouseMovedEvent(wxMouseEvent &event);
-
+ 
 private:
   wxPointList _pixel_coordinates;
   PDataSet _pDataSet;
 
   PlotBorder _border;
   PlotStyle _style;
+  PlotGrid _grid;
 
   double _minval;
   double _maxVal;
@@ -75,21 +82,17 @@ private:
   wxSize _window_size;
   wxPoint _mouse_pos;
 
-  int map_value(double val, double max, double min, int window_size) noexcept;
+   // Event handlers
+  void OnSize(wxSizeEvent &event);
+  void OnPaint(wxPaintEvent &event);
+  void OnMouseMovedEvent(wxMouseEvent &event);
 
+  int map_value(double val, double max, double min, int window_size) noexcept;
   void caculatePixelCoordinates(const wxSize &windowSize,
                                 const PlotBorder &border) noexcept;
-  void drawData(wxBufferedDC &bdc, const wxColour &lineColor) noexcept;
   void drawData(wxBufferedDC &bdc) noexcept;
   void drawCrosshair(wxBufferedDC &bdc) noexcept;
-  void drawCrosshair(wxBufferedDC &bdc, const wxColour &lineColor) noexcept;
-
-  // TODO: Optimize this trash and fix it
-  void drawGrid(wxBufferedDC &bdc, int cols, int rows, const wxSize &windowSize,
+  void drawGrid(wxBufferedDC &bdc, const PlotGrid &grid, wxSize &windowSize,
                 const PlotBorder &border) noexcept;
 
-  void drawPlotBackground(wxBufferedDC &bdc, const wxColour &windowColor,
-                          const wxColour &plotBackgroundColor) noexcept;
-
-  void drawLabels(wxBufferedDC &bdc) noexcept;
 };
