@@ -1,13 +1,13 @@
 #include "PlotWidget.h"
 
-PlotWidget::PlotWidget(wxWindow *parent)
+PlotWidget::PlotWidget(wxWindow *parent, wxStatusBar *statusBar)
     : wxPanel(parent), _pDataSet(nullptr), _minval(0.0), _maxVal(0.0),
       _nSamples(0), _sampleInterval(0.0), _timeWindow(0.0),
-      _border(60, 15, 15, 30),
-      _grid(10, 10, wxColour(200, 200, 200), wxPenStyle::wxPENSTYLE_SHORT_DASH) {
+      _border(60, 15, 15, 30), _grid(10, 10, wxColour(200, 200, 200),
+                                     wxPenStyle::wxPENSTYLE_SHORT_DASH) {
 
+  _mainStatusBar = statusBar;
   m_parent = parent;
-
   // Bind events
   Bind(wxEVT_PAINT, &PlotWidget::OnPaint, this);
   Bind(wxEVT_SIZE, &PlotWidget::OnSize, this);
@@ -40,6 +40,12 @@ void PlotWidget::setDataSet(PDataSet dataset) noexcept {
 
 PDataSet PlotWidget::getDataSet() noexcept { return _pDataSet; }
 
+void PlotWidget::enableGrid(bool value) noexcept { _renderGrid = value; }
+
+void PlotWidget::enableCrossHair(bool value) noexcept {
+  _renderCrossHair = value;
+}
+
 void PlotWidget::OnSize(wxSizeEvent &event) {
   caculatePixelCoordinates(GetSize(), _border);
   Refresh();
@@ -63,13 +69,20 @@ void PlotWidget::OnPaint(wxPaintEvent &event) {
   if (_pDataSet == nullptr)
     return;
 
-  drawGrid(bdc, _grid, _window_size, _border);
+  if (_renderGrid)
+    drawGrid(bdc, _grid, _window_size, _border);
+
   drawData(bdc);
-  drawCrosshair(bdc);
+
+  if (_renderCrossHair)
+    drawCrosshair(bdc);
 }
 
 void PlotWidget::OnMouseMovedEvent(wxMouseEvent &event) {
   _mouse_pos = event.GetPosition();
+  if (_mainStatusBar != nullptr)
+    _mainStatusBar->SetStatusText(
+        fmt::format("({},{})", _mouse_pos.x, _mouse_pos.y), 1);
   this->Refresh(false);
 }
 
@@ -81,6 +94,7 @@ int PlotWidget::map_value(double val, double max, double min,
 void PlotWidget::caculatePixelCoordinates(
     const wxSize &windowSize,
     const PlotBorder &border) noexcept { // Cache data pixel
+
   if (windowSize != _window_size) {
     _window_size = windowSize;
 
@@ -88,6 +102,7 @@ void PlotWidget::caculatePixelCoordinates(
                       border.up - border.down);
 
     for (int i = 0; i < _nSamples; i++) {
+
       _pixel_coordinates[i]->x =
           map_value(i * _sampleInterval, _timeWindow, 0,
                     windowSize.x - border.left - border.right) +
@@ -117,8 +132,8 @@ void PlotWidget::drawGrid(wxBufferedDC &bdc, const PlotGrid &grid,
                           wxSize &windowSize,
                           const PlotBorder &border) noexcept {
   bdc.SetPen(wxPen(_grid.lineColor, 1, grid.penStyle));
-  const int yLenght = windowSize.y - border.height+border.up;
-  const int xLenght = windowSize.x - border.width +border.left;
+  const int yLenght = windowSize.y - border.height + border.up;
+  const int xLenght = windowSize.x - border.width + border.left;
   const int xSpacing = xLenght / grid.cols;
   const int ySpacing = yLenght / grid.rows;
 
