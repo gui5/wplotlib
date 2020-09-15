@@ -4,15 +4,13 @@
 #pragma comment(lib, "wplotlib")
 
 MainFrame::MainFrame()
-    : wxFrame(nullptr, -1, "Plot Example", wxDefaultPosition, wxSize(640, 480)),
-      renderGrid(false) {
+    : wxFrame(nullptr, -1, "Plot Example", wxDefaultPosition,
+              wxSize(1280, 720)) {
 
   buildMenu();
-  auto st = CreateStatusBar(2);
 
-  _plot = new PlotWidget(this, st);
-  auto dataset = createSineWave(1, 10, 0, 50);
-  _plot->setDataSet(dataset);
+  _plot = new PlotWidget(this, CreateStatusBar(2));
+  _plot->setDataSet(createSineWave(1, 10, 0, 50));
 
   Bind(wxEVT_COMMAND_MENU_SELECTED, &MainFrame::OnMenuSelected, this);
 }
@@ -47,8 +45,10 @@ PDataSet MainFrame::createSineWave(double amplitute, double frequency,
   auto dataset = DataSetBuilder::createDataSet(samplesCount, sampleInterval);
 
   for (int i = 0; i < samplesCount; i++) {
-    dataset->insert(amplitute * sin(2.0 * pi * frequency * i * sampleInterval +
-                                    (phase * pi / 180)));
+    dataset->insert(Eigen::Vector2d(
+        i * sampleInterval,
+        amplitute * sin(2.0 * pi * frequency * i * sampleInterval +
+                        (phase * pi / 180))));
   }
   return dataset;
 }
@@ -59,12 +59,10 @@ void MainFrame::buildMenu() noexcept {
   _menuView = new wxMenu;
   _menuStyle = new wxMenu;
 
- 
   _menuFile->Append((int)MenuItemId::ID_MENU_SAVE, "Save");
   _menuFile->Append((int)MenuItemId::ID_MENU_LOAD, "Load");
   _menuFile->AppendSeparator();
   _menuFile->Append(wxID_EXIT, "Exit");
-
 
   _menuView->Append((int)MenuItemId::ID_VIEW_GRID, "Grid",
                     "Enables/disables the plot grid", true);

@@ -6,6 +6,5 @@ bool MyApp::OnInit() {
 
   auto mf = new MainFrame();
   mf->Show();
-
   return true;
 }

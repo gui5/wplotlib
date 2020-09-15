@@ -1,5 +1,6 @@
 #pragma once
 #include "DataSet.h"
+#include <Eigen/Eigen>
 #include <atomic>
 #include <fmt/format.h>
 #include <string>
@@ -8,6 +9,52 @@
 #include <wx/dcbuffer.h>
 #include <wx/dcgraph.h>
 #include <wx/wx.h>
+
+struct PlotScale {
+
+  PlotScale(double xMin, double xMax, double yMin, double yMax)
+      : _xMin(xMin), _xMax(xMax), _yMin(yMin), _yMax(yMax),
+        _ySpan(abs(yMax) + abs(yMin)), _xSpan(abs(xMax) + abs(xMin)) {}
+  PlotScale() : _xMin(0), _xMax(0), _yMin(0), _yMax(0), _ySpan(0), _xSpan(0) {}
+
+  ~PlotScale() = default;
+
+  void setXmin(double value) {
+    _xMin = value;
+    computeXspan();
+  };
+  void setXmax(double value) {
+    _xMax = value;
+    computeXspan();
+  };
+  void SetYmin(double value) {
+    _yMin = value;
+    computeYspan();
+  };
+  void setYmax(double value) {
+    _yMax = value;
+    computeYspan();
+  };
+
+  double xMin() { return _xMin; }
+  double xMax() { return _xMax; }
+  double yMin() { return _yMin; }
+  double yMax() { return _yMax; }
+
+  double ySpan() { return _ySpan; }
+  double xSpan() { return _xSpan; }
+
+private:
+  double _xMin;
+  double _xMax;
+  double _yMin;
+  double _yMax;
+  double _ySpan;
+  double _xSpan;
+
+  void computeXspan() { _xSpan = abs(_xMax) + abs(_xMin); }
+  void computeYspan() { _ySpan = abs(_yMax) + abs(_yMin); }
+};
 
 struct LabelStyle {
   wxColour color;
@@ -21,6 +68,7 @@ struct WindoStyle {};
 
 enum class DataPointType { circle, square, triangle };
 enum class DataLineType { contunuous, dots, dash, longdash };
+
 struct PlotStyle {
   wxColour backgroundColor;
   wxColour lineColor;
@@ -32,32 +80,80 @@ struct PlotStyle {
 };
 
 struct PlotBorder {
-  const int left;
-  const int right;
-  const int up;
-  const int down;
-  const int width;
-  const int height;
+  int left;
+  int right;
+  int up;
+  int down;
 
-  PlotBorder() : left(0), right(0), up(0), down(0), width(0), height(0) {}
+  PlotBorder() : left(0), right(0), up(0), down(0) {}
 
   PlotBorder(int left, int right, int up, int down)
-      : left(left), right(right), up(up), down(down), width(left + right),
-        height(up + down) {}
+      : left(left), right(right), up(up), down(down) {}
 
   ~PlotBorder() = default;
+};
+
+struct DrawRegion {
+  int x;
+  int y;
+  int width;
+  int height;
+
+  DrawRegion() : x(0), y(0), width(0), height(0) {}
+  DrawRegion(int x, int y, int width, int height)
+      : x(x), y(y), width(width), height(height) {}
+
+  DrawRegion(const PlotBorder &border, const wxSize &windowSize) {
+    x = border.left;
+    y = border.up;
+    width = windowSize.x - (border.left + border.right);
+    height = windowSize.y - (border.up + border.down);
+  }
+
+  void Update(const PlotBorder &border, const wxSize &windowSize) {
+    x = border.left;
+    y = border.up;
+    width = windowSize.x - (border.left + border.right);
+    height = windowSize.y - (border.up + border.down);
+  }
+
+  ~DrawRegion() = default;
 };
 
 enum class GridLineType { contunous, dot, dash, longdash };
 struct PlotGrid {
   int rows;
   int cols;
-  wxColour lineColor;
-  wxPenStyle penStyle;
+  std::vector<std::pair<wxPoint, wxPoint>> hLines;
+  std::vector<std::pair<wxPoint, wxPoint>> vLines;
 
-  PlotGrid(int rows, int cols, const wxColour &lineColor,
-           const wxPenStyle &penStyle)
-      : rows(rows), cols(cols), lineColor(lineColor), penStyle(penStyle) {}
+
+  void update(const DrawRegion &drawRegion) {
+    const int xSpacing = drawRegion.width / cols;
+    const int ySpacing = drawRegion.height / rows;
+    int cx = 0;
+    int cy = 0;
+
+    hLines.clear();
+    vLines.clear();
+
+    for (int i = 0; i < rows; i++) {
+      cy = drawRegion.y + ySpacing * i;
+      hLines.push_back({wxPoint(drawRegion.x, cy),
+                        wxPoint(drawRegion.width + drawRegion.x, cy)});
+    }
+
+    for (int i = 0; i < cols; i++) {
+      cx = drawRegion.x + xSpacing * i;
+      vLines.push_back({wxPoint(cx, drawRegion.y),
+                        wxPoint(cx, drawRegion.height + drawRegion.y)});
+    }
+  }
+
+  PlotGrid(int rows, int cols, const DrawRegion &drawRegion)
+      : rows(rows), cols(cols) {
+    update(drawRegion);
+  }
 
   ~PlotGrid() = default;
 };
@@ -75,42 +171,42 @@ public:
   PDataSet getDataSet() noexcept;
   void enableGrid(bool value = false) noexcept;
   void enableCrossHair(bool value = false) noexcept;
+  void setPlotScale(const PlotScale &scale) noexcept;
 
 private:
-  wxPointList _pixel_coordinates;
+  wxPointList _pixelCoordinates;
   PDataSet _pDataSet;
-
   PlotBorder _border;
   PlotStyle _style;
   PlotGrid _grid;
+  PlotScale _scale;
+  wxSize _windowSize;
+  DrawRegion _drawRegion;
 
-  double _minval;
-  double _maxVal;
-  double _sampleInterval;
-  int _nSamples;
-  double _timeWindow;
 
-  wxSize _window_size;
-  wxPoint _mouse_pos;
+  wxPoint _mousePos;
   wxStatusBar *_mainStatusBar;
 
+  Eigen::Matrix2d _pixelTransformMatrix;
+  Eigen::Vector2d _offsetVector;
+
   // control variables
+
   std::atomic_bool _renderGrid;
   std::atomic_bool _renderCrossHair;
 
   // Event handlers
+
   void OnSize(wxSizeEvent &event);
   void OnPaint(wxPaintEvent &event);
   void OnMouseMovedEvent(wxMouseEvent &event);
 
+  // drawing functions
 
-  int map_value(double val, double max, double min,
-                       int window_size) noexcept;
-  void caculatePixelCoordinates(const wxSize &windowSize,
-                                const PlotBorder &border) noexcept;
   void drawData(wxBufferedDC &bdc) noexcept;
   void drawCrosshair(wxBufferedDC &bdc) noexcept;
-  void drawGrid(wxBufferedDC &bdc, const PlotGrid &grid, wxSize &windowSize,
-                const PlotBorder &border) noexcept;
+  void drawGrid(wxBufferedDC &bdc, const PlotGrid &grid,
+                const DrawRegion &drawRegion) noexcept;
 
+  void scalePlot() noexcept;
 };

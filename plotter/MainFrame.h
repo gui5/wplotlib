@@ -31,9 +31,6 @@ private:
   wxMenu *_menuView;
   wxMenu *_menuStyle;
 
-  // control variables
-  std::atomic_bool renderGrid;
-
   // event handlers
   void OnMenuSelected(wxCommandEvent &event) noexcept;
 
