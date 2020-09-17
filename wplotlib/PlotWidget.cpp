@@ -1,12 +1,12 @@
 #include "PlotWidget.h"
 
-PlotWidget::PlotWidget(wxWindow *parent, wxStatusBar *statusBar)
+PlotWidget::PlotWidget(wxWindow *parent, /*const wxSize &size,*/
+                       wxStatusBar *statusBar)
     : wxPanel(parent), _pDataSet(nullptr), _border(60, 15, 15, 30),
       _drawRegion(_border, parent->GetSize()), m_parent(parent),
       _scale(0, 1, -2, 2), _grid(8, 10, _drawRegion) {
 
-  _windowSize.x = statusBar->GetSize().x;
-  _windowSize.y = parent->GetSize().y - statusBar->GetSize().y * 3 - _border.up;
+  _windowSize = parent->GetSize();
 
   _mainStatusBar = statusBar;
 
@@ -14,6 +14,7 @@ PlotWidget::PlotWidget(wxWindow *parent, wxStatusBar *statusBar)
   Bind(wxEVT_PAINT, &PlotWidget::OnPaint, this);
   Bind(wxEVT_SIZE, &PlotWidget::OnSize, this);
   Bind(wxEVT_MOTION, &PlotWidget::OnMouseMovedEvent, this);
+  Refresh();
 }
 
 PlotWidget::~PlotWidget() {
@@ -30,6 +31,8 @@ void PlotWidget::setDataSet(PDataSet dataset) noexcept {
   for (auto &pt : _pixelCoordinates) {
     delete pt;
   }
+
+  //scalePlot();
 
   Eigen::Vector2d px;
 
@@ -65,13 +68,14 @@ void PlotWidget::OnPaint(wxPaintEvent &event) {
   wxBufferedDC bdc(&dc); // bufferedDC to avoid flickering
 
   // set background color
-  bdc.SetPen(wxPen(wxColour(255, 255, 255)));
-  bdc.SetBrush(wxBrush(wxColour(255, 255, 255)));
+
+  bdc.SetPen(_style.windowColor);
+  bdc.SetBrush(wxBrush(_style.windowColor));
   bdc.DrawRectangle(0, 0, _windowSize.x, _windowSize.y);
 
   // draw axis rectangle
-  bdc.SetPen(wxPen(wxColour(0, 0, 0), 2));        // black
-  bdc.SetBrush(wxBrush(wxColour(255, 255, 220))); // yellow
+  bdc.SetPen(wxPen(_style.borderColor, 2));      // black
+  bdc.SetBrush(wxBrush(_style.backgroundColor)); // yellow
   bdc.DrawRectangle(_drawRegion.x, _drawRegion.y, _drawRegion.width,
                     _drawRegion.height);
 
@@ -79,7 +83,7 @@ void PlotWidget::OnPaint(wxPaintEvent &event) {
     return;
 
   if (_renderGrid)
-    drawGrid(bdc, _grid, _drawRegion);
+    drawGrid(bdc);
 
   drawData(bdc);
 
@@ -89,43 +93,49 @@ void PlotWidget::OnPaint(wxPaintEvent &event) {
 
 void PlotWidget::OnMouseMovedEvent(wxMouseEvent &event) {
   _mousePos = event.GetPosition();
-  if (_mainStatusBar != nullptr)
+  if (_mainStatusBar != nullptr) {
+
     _mainStatusBar->SetStatusText(
         fmt::format("({},{})", _mousePos.x, _mousePos.y), 1);
-  this->Refresh(false);
+  }
+  if (_renderCrossHair) {
+    this->Refresh(false);
+  }
 }
 
 void PlotWidget::drawData(wxBufferedDC &bdc) noexcept {
   // draw data
-  bdc.SetPen(wxPen(wxColour(0, 0, 255), 1));
+  bdc.SetPen(wxPen(_style.lineColor, 1));
   bdc.DrawLines(&_pixelCoordinates);
 }
 
 void PlotWidget::drawCrosshair(wxBufferedDC &bdc) noexcept {
   // draw crosshair
-  bdc.SetPen(wxPen(wxColour(0, 255, 0), 1));
+  bdc.SetPen(wxPen(_style.crossHairColor, 1));
   bdc.CrossHair(_mousePos);
 }
 
-void PlotWidget::drawGrid(wxBufferedDC &bdc, const PlotGrid &grid,
-                          const DrawRegion &drawRegion) noexcept {
+void PlotWidget::drawGrid(wxBufferedDC &bdc) noexcept {
 
   bdc.SetPen(
       wxPen(wxColour(200, 200, 200), 1, wxPenStyle::wxPENSTYLE_SHORT_DASH));
 
-  for (auto &row : grid.hLines) {
-    bdc.DrawLine(row.first, row.second);
-  }
-
-  for (auto &col : grid.vLines) {
-    bdc.DrawLine(col.first, col.second);
+  for (int i = 0; i < _grid.maxcr; i++) {
+    if (i < _grid.hLines.size()) {
+      const auto &h = _grid.hLines[i];
+      bdc.DrawLine(h.p1, h.p2);
+    }
+    if (i < _grid.vLines.size()) {
+      const auto &v = _grid.vLines[i];
+      bdc.DrawLine(v.p1, v.p2);
+    }
   }
 }
 
 void PlotWidget::scalePlot() noexcept {
   const auto sz = GetSize();
   if (sz != _windowSize) {
-
+    _windowSize = sz;
     _drawRegion.Update(_border, _windowSize);
     _pixelTransformMatrix(0, 0) = _drawRegion.width / _scale.xSpan();
     _pixelTransformMatrix(1, 1) = _drawRegion.height / _scale.ySpan();
@@ -143,7 +153,6 @@ void PlotWidget::scalePlot() noexcept {
     if (_renderGrid)
       _grid.update(_drawRegion);
 
-    _windowSize = sz;
     Refresh();
   }
 }

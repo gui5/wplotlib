@@ -6,11 +6,18 @@
 MainFrame::MainFrame()
     : wxFrame(nullptr, -1, "Plot Example", wxDefaultPosition,
               wxSize(1280, 720)) {
-
   buildMenu();
+  auto sb = CreateStatusBar(2);
 
-  _plot = new PlotWidget(this, CreateStatusBar(2));
-  _plot->setDataSet(createSineWave(1, 10, 0, 50));
+  _plot = new PlotWidget(this, sb);
+  _plot->setDataSet(createSineWave(1, 500, 0, 500));
+  _plot->setPlotScale(PlotScale(0, 0.05, -2, 2));
+
+  wxBoxSizer *topsizer = new wxBoxSizer(wxVERTICAL);
+
+  topsizer->Add(_plot, 1, wxEXPAND | wxALL, 0);
+
+  SetSizer(topsizer);
 
   Bind(wxEVT_COMMAND_MENU_SELECTED, &MainFrame::OnMenuSelected, this);
 }

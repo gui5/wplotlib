@@ -70,13 +70,23 @@ enum class DataPointType { circle, square, triangle };
 enum class DataLineType { contunuous, dots, dash, longdash };
 
 struct PlotStyle {
+  wxColour windowColor;
   wxColour backgroundColor;
   wxColour lineColor;
   wxColour dotColor;
+  wxColour borderColor;
+  wxColour crossHairColor;
   DataPointType dotType;
   DataLineType lineType;
   LabelStyle xLabelStyle;
   LabelStyle yLabelStyle;
+
+  PlotStyle()
+      : windowColor(255, 255, 255), backgroundColor(255, 255, 220),
+        lineColor(0, 0, 255), dotColor(0, 0, 255), borderColor(0, 0, 0),
+        crossHairColor(0, 200, 0), dotType(DataPointType::square),
+        lineType(DataLineType::contunuous) {}
+  ~PlotStyle() = default;
 };
 
 struct PlotBorder {
@@ -122,11 +132,18 @@ struct DrawRegion {
 
 enum class GridLineType { contunous, dot, dash, longdash };
 struct PlotGrid {
+  struct Line {
+    const wxPoint p1;
+    const wxPoint p2;
+    Line(int x1, int y1, int x2, int y2) : p1(x1, y1), p2(x2, y2) {}
+    ~Line() = default;
+  };
+
   int rows;
   int cols;
-  std::vector<std::pair<wxPoint, wxPoint>> hLines;
-  std::vector<std::pair<wxPoint, wxPoint>> vLines;
-
+  int maxcr;
+  std::vector<Line> hLines;
+  std::vector<Line> vLines;
 
   void update(const DrawRegion &drawRegion) {
     const int xSpacing = drawRegion.width / cols;
@@ -139,20 +156,21 @@ struct PlotGrid {
 
     for (int i = 0; i < rows; i++) {
       cy = drawRegion.y + ySpacing * i;
-      hLines.push_back({wxPoint(drawRegion.x, cy),
-                        wxPoint(drawRegion.width + drawRegion.x, cy)});
+      hLines.emplace_back(drawRegion.x, cy, drawRegion.width + drawRegion.x,
+                          cy);
     }
 
     for (int i = 0; i < cols; i++) {
       cx = drawRegion.x + xSpacing * i;
-      vLines.push_back({wxPoint(cx, drawRegion.y),
-                        wxPoint(cx, drawRegion.height + drawRegion.y)});
+      vLines.emplace_back(cx, drawRegion.y, cx,
+                          drawRegion.height + drawRegion.y);
     }
   }
 
   PlotGrid(int rows, int cols, const DrawRegion &drawRegion)
       : rows(rows), cols(cols) {
     update(drawRegion);
+    maxcr = rows > cols ? rows : cols;
   }
 
   ~PlotGrid() = default;
@@ -161,7 +179,8 @@ struct PlotGrid {
 // Limited lenght plot, use when the dataset have a known lenght;
 class PlotWidget : public wxPanel {
 public:
-  PlotWidget(wxWindow *parent, wxStatusBar *statusBar = nullptr);
+  PlotWidget(wxWindow *parent, /*const wxSize &size,*/
+             wxStatusBar *statusBar = nullptr);
 
   ~PlotWidget();
 
@@ -182,7 +201,6 @@ private:
   PlotScale _scale;
   wxSize _windowSize;
   DrawRegion _drawRegion;
-
 
   wxPoint _mousePos;
   wxStatusBar *_mainStatusBar;
@@ -205,8 +223,7 @@ private:
 
   void drawData(wxBufferedDC &bdc) noexcept;
   void drawCrosshair(wxBufferedDC &bdc) noexcept;
-  void drawGrid(wxBufferedDC &bdc, const PlotGrid &grid,
-                const DrawRegion &drawRegion) noexcept;
+  void drawGrid(wxBufferedDC &bdc) noexcept;
 
   void scalePlot() noexcept;
 };
