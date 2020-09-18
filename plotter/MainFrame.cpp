@@ -9,9 +9,9 @@ MainFrame::MainFrame()
   buildMenu();
   auto sb = CreateStatusBar(2);
 
-  _plot = new PlotWidget(this, sb);
-  _plot->setDataSet(createSineWave(1, 500, 0, 500));
-  _plot->setPlotScale(PlotScale(0, 0.05, -2, 2));
+  _plot = new PlotWidget(this);
+  _plot->setDataSet(createSineWave(1, 10, 0, 200));
+  _plot->setPlotScale(PlotScale(0, 1, -2, 2));
 
   wxBoxSizer *topsizer = new wxBoxSizer(wxVERTICAL);
 
@@ -20,6 +20,7 @@ MainFrame::MainFrame()
   SetSizer(topsizer);
 
   Bind(wxEVT_COMMAND_MENU_SELECTED, &MainFrame::OnMenuSelected, this);
+  Bind(PLOT_MOUSE_HOVER_EVENT, &MainFrame::OnPlotMouseHover, this);
 }
 
 void MainFrame::OnMenuSelected(wxCommandEvent &event) noexcept {
@@ -31,16 +32,23 @@ void MainFrame::OnMenuSelected(wxCommandEvent &event) noexcept {
 
   case (int)MenuItemId::ID_VIEW_GRID:
     _plot->enableGrid(_menuView->IsChecked((int)MenuItemId::ID_VIEW_GRID));
+    _plot->Refresh();
     break;
 
   case (int)MenuItemId::ID_VIEW_CROSSHAIR:
     _plot->enableCrossHair(
         _menuView->IsChecked((int)MenuItemId::ID_VIEW_CROSSHAIR));
+    _plot->Refresh();
     break;
 
   default:
     break;
   }
+}
+
+void MainFrame::OnPlotMouseHover(MouseHoverEvent &event) noexcept {
+  const auto data = event.data;
+  SetStatusText(fmt::format("({:f} , {:f})",data.x, data.y), 1);
 }
 
 PDataSet MainFrame::createSineWave(double amplitute, double frequency,
@@ -52,10 +60,11 @@ PDataSet MainFrame::createSineWave(double amplitute, double frequency,
   auto dataset = DataSetBuilder::createDataSet(samplesCount, sampleInterval);
 
   for (int i = 0; i < samplesCount; i++) {
-    dataset->insert(Eigen::Vector2d(
+    dataset->insert(Eigen::Vector3d(
         i * sampleInterval,
-        amplitute * sin(2.0 * pi * frequency * i * sampleInterval +
-                        (phase * pi / 180))));
+        amplitute *
+            sin(2.0 * pi * frequency * i * sampleInterval + (phase * pi / 180)),
+        1.0));
   }
   return dataset;
 }

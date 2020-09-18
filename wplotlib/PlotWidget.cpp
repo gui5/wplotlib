@@ -1,14 +1,18 @@
 #include "PlotWidget.h"
 
-PlotWidget::PlotWidget(wxWindow *parent, /*const wxSize &size,*/
-                       wxStatusBar *statusBar)
+wxDEFINE_EVENT(PLOT_MOUSE_HOVER_EVENT, MouseHoverEvent);
+
+PlotWidget::PlotWidget(wxWindow *parent)
     : wxPanel(parent), _pDataSet(nullptr), _border(60, 15, 15, 30),
       _drawRegion(_border, parent->GetSize()), m_parent(parent),
-      _scale(0, 1, -2, 2), _grid(8, 10, _drawRegion) {
+      _scale(0, 1, -2, 2), _grid(8, 10, _drawRegion),
+      _sx(_pixelTransformMatrix(0, 0)), _sy(_pixelTransformMatrix(1, 1)),
+      _offy(_pixelTransformMatrix(1, 2)), _offx(_pixelTransformMatrix(0, 2)) {
+
+  _pixelTransformMatrix(2, 2) = 1.0;
 
   _windowSize = parent->GetSize();
 
-  _mainStatusBar = statusBar;
 
   // Bind events
   Bind(wxEVT_PAINT, &PlotWidget::OnPaint, this);
@@ -32,14 +36,11 @@ void PlotWidget::setDataSet(PDataSet dataset) noexcept {
     delete pt;
   }
 
-  //scalePlot();
-
-  Eigen::Vector2d px;
-
-  for (int i = 0; i < _pDataSet->size(); i++) {
-    px = _pixelTransformMatrix * _pDataSet->at(i) + _offsetVector;
-    _pixelCoordinates.Append(new wxPoint(px(0), px(1)));
+  for (int i = 0; i < dataset->size(); i++) {
+    _pixelCoordinates.Append(new wxPoint());
   }
+
+  scalePlot();
 }
 
 PDataSet PlotWidget::getDataSet() noexcept { return _pDataSet; }
@@ -93,11 +94,9 @@ void PlotWidget::OnPaint(wxPaintEvent &event) {
 
 void PlotWidget::OnMouseMovedEvent(wxMouseEvent &event) {
   _mousePos = event.GetPosition();
-  if (_mainStatusBar != nullptr) {
+  Eigen::Vector3d px = toData(_mousePos);
+  wxPostEvent(m_parent, MouseHoverEvent(wxRealPoint(px(0),px(1))));
 
-    _mainStatusBar->SetStatusText(
-        fmt::format("({},{})", _mousePos.x, _mousePos.y), 1);
-  }
   if (_renderCrossHair) {
     this->Refresh(false);
   }
@@ -137,15 +136,13 @@ void PlotWidget::scalePlot() noexcept {
   if (sz != _windowSize) {
     _windowSize = sz;
     _drawRegion.Update(_border, _windowSize);
-    _pixelTransformMatrix(0, 0) = _drawRegion.width / _scale.xSpan();
-    _pixelTransformMatrix(1, 1) = _drawRegion.height / _scale.ySpan();
-    _offsetVector(0) = _drawRegion.x;
-    _offsetVector(1) = (double)_drawRegion.y + (_drawRegion.height / 2.0);
 
-    Eigen::Vector2d px;
+    computeTransformationMatrices();
+
+    Eigen::Vector3d px;
 
     for (int i = 0; i < _pDataSet->size(); i++) {
-      px = _pixelTransformMatrix * _pDataSet->at(i) + _offsetVector;
+      px = toPixel(_pDataSet->at(i));
       _pixelCoordinates[i]->x = px(0);
       _pixelCoordinates[i]->y = px(1);
     }
@@ -155,4 +152,20 @@ void PlotWidget::scalePlot() noexcept {
 
     Refresh();
   }
+}
+
+void PlotWidget::computeTransformationMatrices() noexcept {
+  _sx = _drawRegion.width / _scale.xSpan();
+  _sy = -1.0 *_drawRegion.height / _scale.ySpan();
+  _offx = (double)_drawRegion.x;
+  _offy = (double)_drawRegion.y + (_drawRegion.height / 2.0);
+}
+
+Eigen::Vector3d PlotWidget::toPixel(const Eigen::Vector3d &data) noexcept {
+  return _pixelTransformMatrix * data;
+}
+
+Eigen::Vector3d PlotWidget::toData(const wxPoint &pixel) noexcept {
+  return _pixelTransformMatrix.inverse() *
+         Eigen::Vector3d((double)pixel.x, (double)pixel.y, 1.0);
 }

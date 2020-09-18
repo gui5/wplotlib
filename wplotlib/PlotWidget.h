@@ -9,6 +9,7 @@
 #include <wx/dcbuffer.h>
 #include <wx/dcgraph.h>
 #include <wx/wx.h>
+#include "PlotEvent.h"
 
 struct PlotScale {
 
@@ -36,13 +37,13 @@ struct PlotScale {
     computeYspan();
   };
 
-  double xMin() { return _xMin; }
-  double xMax() { return _xMax; }
-  double yMin() { return _yMin; }
-  double yMax() { return _yMax; }
+  double xMin()const { return _xMin; }
+  double xMax()const { return _xMax; }
+  double yMin()const { return _yMin; }
+  double yMax()const { return _yMax; }
 
-  double ySpan() { return _ySpan; }
-  double xSpan() { return _xSpan; }
+  double ySpan()const { return _ySpan; }
+  double xSpan()const { return _xSpan; }
 
 private:
   double _xMin;
@@ -179,8 +180,7 @@ struct PlotGrid {
 // Limited lenght plot, use when the dataset have a known lenght;
 class PlotWidget : public wxPanel {
 public:
-  PlotWidget(wxWindow *parent, /*const wxSize &size,*/
-             wxStatusBar *statusBar = nullptr);
+  PlotWidget(wxWindow *parent);
 
   ~PlotWidget();
 
@@ -196,6 +196,7 @@ private:
   wxPointList _pixelCoordinates;
   PDataSet _pDataSet;
   PlotBorder _border;
+
   PlotStyle _style;
   PlotGrid _grid;
   PlotScale _scale;
@@ -203,10 +204,30 @@ private:
   DrawRegion _drawRegion;
 
   wxPoint _mousePos;
-  wxStatusBar *_mainStatusBar;
 
-  Eigen::Matrix2d _pixelTransformMatrix;
-  Eigen::Vector2d _offsetVector;
+  /*
+    transformation Matrices
+
+    | sx 0  offx |
+    | 0  sy offy |
+    | 0  0   1   |
+
+    sx = scale x
+    sy = scale y
+    offx = offset x
+    offy = offset y
+
+    P = A * D
+    D = A^-1 *D
+
+  */
+
+  double &_sx;
+  double &_sy;
+  double &_offx;
+  double &_offy;
+
+  Eigen::Matrix3d _pixelTransformMatrix; // from data to pixel transfrom
 
   // control variables
 
@@ -225,5 +246,10 @@ private:
   void drawCrosshair(wxBufferedDC &bdc) noexcept;
   void drawGrid(wxBufferedDC &bdc) noexcept;
 
+  //Transformation functions
+
   void scalePlot() noexcept;
+  void computeTransformationMatrices()noexcept;
+  Eigen::Vector3d toPixel(const Eigen::Vector3d &data) noexcept;
+  Eigen::Vector3d toData(const wxPoint &pixel) noexcept;
 };

@@ -33,6 +33,7 @@ private:
 
   // event handlers
   void OnMenuSelected(wxCommandEvent &event) noexcept;
+  void OnPlotMouseHover(MouseHoverEvent &event) noexcept;
 
   PDataSet createSineWave(double amplitute, double frequency, double phase,
                           int samplesCount);

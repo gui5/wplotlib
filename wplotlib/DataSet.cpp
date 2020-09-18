@@ -8,22 +8,22 @@ DataSet::DataSet(int nSamples, double sampleInterval)
   _samples.reserve(nSamples);
   _timeWindow = _nSamples * _sampleInterval;
   for (int i = 0; i < _nSamples; i++) {
-    _samples.emplace_back(0.0,0.0);
+    _samples.emplace_back(0.0,0.0,0.0);
   }
 }
 
-Eigen::Vector2d &DataSet::at(int index) noexcept {
+Eigen::Vector3d &DataSet::at(int index) noexcept {
   Lock lck(&_lock);
 
   if (index < _samples.size()) {
     return _samples.at(index);
   }
 
-  static Eigen::Vector2d invalidSample((double)NAN, (double)NAN);
+  static Eigen::Vector3d invalidSample((double)NAN, (double)NAN, (double)NAN);
   return invalidSample;
 }
 
-void DataSet::insert(const Eigen::Vector2d &sample) noexcept {
+void DataSet::insert(const Eigen::Vector3d &sample) noexcept {
   Lock lck(&_lock);
   if (_nextSample > _nSamples - 1) {
     _nextSample = 0;

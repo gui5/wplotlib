@@ -24,6 +24,9 @@
     <ClInclude Include="Lock.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="PlotEvent.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="PlotWidget.cpp">

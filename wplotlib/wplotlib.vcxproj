@@ -146,6 +146,7 @@
   <ItemGroup>
     <ClInclude Include="DataSet.h" />
     <ClInclude Include="Lock.h" />
+    <ClInclude Include="PlotEvent.h" />
     <ClInclude Include="PlotWidget.h" />
   </ItemGroup>
   <ItemGroup>

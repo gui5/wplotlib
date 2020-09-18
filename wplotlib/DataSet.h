@@ -11,8 +11,8 @@ public:
   DataSet(int nSamples, double sampleInterval);
   ~DataSet() = default;
 
-  Eigen::Vector2d & at(int index) noexcept;
-  void insert(const Eigen::Vector2d &sample) noexcept;
+  Eigen::Vector3d & at(int index) noexcept;
+  void insert(const Eigen::Vector3d &sample) noexcept;
   PSRWLOCK getLock() noexcept;
 
   auto begin() noexcept;
@@ -28,7 +28,7 @@ private:
   int _nextSample;
   double _sampleInterval;
   double _timeWindow;
-  std::vector<Eigen::Vector2d> _samples;
+  std::vector<Eigen::Vector3d> _samples;
   SRWLOCK _lock;
 };
 
