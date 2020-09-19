@@ -3,7 +3,7 @@
 wxDEFINE_EVENT(PLOT_MOUSE_HOVER_EVENT, MouseHoverEvent);
 
 PlotWidget::PlotWidget(wxWindow *parent)
-    : wxPanel(parent), _pDataSet(nullptr), _border(60, 15, 15, 30),
+    : wxPanel(parent), _pDataSet(nullptr), _border(60, 15, 20, 30),
       _drawRegion(_border, parent->GetSize()), m_parent(parent),
       _scale(0, 1, -2, 2), _grid(8, 10, _drawRegion),
       _sx(_pixelTransformMatrix(0, 0)), _sy(_pixelTransformMatrix(1, 1)),
@@ -13,6 +13,7 @@ PlotWidget::PlotWidget(wxWindow *parent)
 
   _windowSize = parent->GetSize();
 
+  _renderLabels = true;
 
   // Bind events
   Bind(wxEVT_PAINT, &PlotWidget::OnPaint, this);
@@ -62,7 +63,10 @@ void PlotWidget::setPlotScale(const PlotScale &scale) noexcept {
   scalePlot();
 }
 
-void PlotWidget::OnSize(wxSizeEvent &event) { scalePlot(); }
+void PlotWidget::OnSize(wxSizeEvent &event) {
+  scalePlot();
+  _labels.cacheLabels(_grid, _pixelTransformMatrix);
+}
 
 void PlotWidget::OnPaint(wxPaintEvent &event) {
   wxPaintDC dc(this);
@@ -90,12 +94,15 @@ void PlotWidget::OnPaint(wxPaintEvent &event) {
 
   if (_renderCrossHair)
     drawCrosshair(bdc);
+
+  if (_renderLabels)
+    drawLables(bdc);
 }
 
 void PlotWidget::OnMouseMovedEvent(wxMouseEvent &event) {
   _mousePos = event.GetPosition();
   Eigen::Vector3d px = toData(_mousePos);
-  wxPostEvent(m_parent, MouseHoverEvent(wxRealPoint(px(0),px(1))));
+  wxPostEvent(m_parent, MouseHoverEvent(wxRealPoint(px(0), px(1))));
 
   if (_renderCrossHair) {
     this->Refresh(false);
@@ -131,6 +138,15 @@ void PlotWidget::drawGrid(wxBufferedDC &bdc) noexcept {
   }
 }
 
+void PlotWidget::drawLables(wxDC &bdc) noexcept {
+  for (auto &xlabel : _labels.xLabel) {
+    bdc.DrawText(xlabel.value, xlabel.position);
+  }
+  for (auto &ylabel : _labels.yLabel) {
+    bdc.DrawText(ylabel.value, ylabel.position);
+  }
+}
+
 void PlotWidget::scalePlot() noexcept {
   const auto sz = GetSize();
   if (sz != _windowSize) {
@@ -147,8 +163,7 @@ void PlotWidget::scalePlot() noexcept {
       _pixelCoordinates[i]->y = px(1);
     }
 
-    if (_renderGrid)
-      _grid.update(_drawRegion);
+    _grid.update(_drawRegion);
 
     Refresh();
   }
@@ -156,7 +171,7 @@ void PlotWidget::scalePlot() noexcept {
 
 void PlotWidget::computeTransformationMatrices() noexcept {
   _sx = _drawRegion.width / _scale.xSpan();
-  _sy = -1.0 *_drawRegion.height / _scale.ySpan();
+  _sy = -1.0 * _drawRegion.height / _scale.ySpan();
   _offx = (double)_drawRegion.x;
   _offy = (double)_drawRegion.y + (_drawRegion.height / 2.0);
 }

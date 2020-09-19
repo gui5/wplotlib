@@ -1,5 +1,6 @@
 #pragma once
 #include "DataSet.h"
+#include "PlotEvent.h"
 #include <Eigen/Eigen>
 #include <atomic>
 #include <fmt/format.h>
@@ -9,7 +10,6 @@
 #include <wx/dcbuffer.h>
 #include <wx/dcgraph.h>
 #include <wx/wx.h>
-#include "PlotEvent.h"
 
 struct PlotScale {
 
@@ -37,13 +37,13 @@ struct PlotScale {
     computeYspan();
   };
 
-  double xMin()const { return _xMin; }
-  double xMax()const { return _xMax; }
-  double yMin()const { return _yMin; }
-  double yMax()const { return _yMax; }
+  double xMin() const { return _xMin; }
+  double xMax() const { return _xMax; }
+  double yMin() const { return _yMin; }
+  double yMax() const { return _yMax; }
 
-  double ySpan()const { return _ySpan; }
-  double xSpan()const { return _xSpan; }
+  double ySpan() const { return _ySpan; }
+  double xSpan() const { return _xSpan; }
 
 private:
   double _xMin;
@@ -55,12 +55,6 @@ private:
 
   void computeXspan() { _xSpan = abs(_xMax) + abs(_xMin); }
   void computeYspan() { _ySpan = abs(_yMax) + abs(_yMin); }
-};
-
-struct LabelStyle {
-  wxColour color;
-  wxFont font;
-  int size;
 };
 
 struct CrossHairStyle {};
@@ -79,8 +73,6 @@ struct PlotStyle {
   wxColour crossHairColor;
   DataPointType dotType;
   DataLineType lineType;
-  LabelStyle xLabelStyle;
-  LabelStyle yLabelStyle;
 
   PlotStyle()
       : windowColor(255, 255, 255), backgroundColor(255, 255, 220),
@@ -177,6 +169,53 @@ struct PlotGrid {
   ~PlotGrid() = default;
 };
 
+struct LabelStyle {
+  wxColour color;
+  wxFont font;
+  int size;
+};
+
+struct PlotLabel {
+  struct Label {
+    wxPoint position;
+    std::string value;
+
+    Label(const wxPoint &pos, std::string_view value)
+        : position(pos), value(value) {}
+    Label() {}
+
+    ~Label() = default;
+  };
+
+  std::vector<Label> xLabel;
+  std::vector<Label> yLabel;
+
+  LabelStyle xLabelStyle;
+  LabelStyle yLabelStyle;
+
+  void cacheLabels(const PlotGrid &grid,
+                   Eigen::Matrix3d &pixelTransformMatrix) noexcept {
+
+    auto m = pixelTransformMatrix.inverse();
+    xLabel.clear();
+    yLabel.clear();
+    Eigen::Vector3d val;
+    for (auto &x : grid.vLines) {
+      val = m * Eigen::Vector3d(x.p2.x, x.p2.y, 1.0);
+      auto &pos = x.p2;
+      xLabel.emplace_back(wxPoint(pos.x - 20, pos.y),
+                          fmt::format("{:.3f}", val(0)));
+    }
+
+    for (auto &y : grid.hLines) {
+      val = m * Eigen::Vector3d(y.p1.x, y.p1.y, 1.0);
+      auto &pos = y.p1;
+      yLabel.emplace_back(wxPoint(pos.x - 50, pos.y-10),
+                          fmt::format("{:+.3f}", val(1)));
+    }
+  }
+};
+
 // Limited lenght plot, use when the dataset have a known lenght;
 class PlotWidget : public wxPanel {
 public:
@@ -197,6 +236,7 @@ private:
   PDataSet _pDataSet;
   PlotBorder _border;
 
+  PlotLabel _labels;
   PlotStyle _style;
   PlotGrid _grid;
   PlotScale _scale;
@@ -233,6 +273,7 @@ private:
 
   std::atomic_bool _renderGrid;
   std::atomic_bool _renderCrossHair;
+  std::atomic_bool _renderLabels;
 
   // Event handlers
 
@@ -245,11 +286,12 @@ private:
   void drawData(wxBufferedDC &bdc) noexcept;
   void drawCrosshair(wxBufferedDC &bdc) noexcept;
   void drawGrid(wxBufferedDC &bdc) noexcept;
+  void drawLables(wxDC &bdc) noexcept;
 
-  //Transformation functions
+  // Transformation functions
 
   void scalePlot() noexcept;
-  void computeTransformationMatrices()noexcept;
+  void computeTransformationMatrices() noexcept;
   Eigen::Vector3d toPixel(const Eigen::Vector3d &data) noexcept;
   Eigen::Vector3d toData(const wxPoint &pixel) noexcept;
 };
