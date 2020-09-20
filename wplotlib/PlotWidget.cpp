@@ -5,7 +5,7 @@ wxDEFINE_EVENT(PLOT_MOUSE_HOVER_EVENT, MouseHoverEvent);
 PlotWidget::PlotWidget(wxWindow *parent)
     : wxPanel(parent), _pDataSet(nullptr), _border(60, 15, 20, 30),
       _drawRegion(_border, parent->GetSize()), m_parent(parent),
-      _scale(0, 1, -2, 2), _grid(8, 10, _drawRegion),
+      _scale(0, 1, -1, 1), _grid(8, 10, PlotGridStyle()),
       _sx(_pixelTransformMatrix(0, 0)), _sy(_pixelTransformMatrix(1, 1)),
       _offy(_pixelTransformMatrix(1, 2)), _offx(_pixelTransformMatrix(0, 2)) {
 
@@ -54,6 +54,12 @@ void PlotWidget::enableGrid(bool value) noexcept {
   }
 }
 
+void PlotWidget::setGrid(const PlotGrid &grid) noexcept {
+  _grid = grid;
+  _grid.update(_drawRegion);
+  Refresh();
+}
+
 void PlotWidget::enableCrossHair(bool value) noexcept {
   _renderCrossHair = value;
 }
@@ -65,7 +71,7 @@ void PlotWidget::setPlotScale(const PlotScale &scale) noexcept {
 
 void PlotWidget::OnSize(wxSizeEvent &event) {
   scalePlot();
-  _labels.cacheLabels(_grid, _pixelTransformMatrix);
+  _labels.cacheLabels(_grid, _pixelTransformMatrix, _scale);
 }
 
 void PlotWidget::OnPaint(wxPaintEvent &event) {
@@ -123,22 +129,22 @@ void PlotWidget::drawCrosshair(wxBufferedDC &bdc) noexcept {
 
 void PlotWidget::drawGrid(wxBufferedDC &bdc) noexcept {
 
-  bdc.SetPen(
-      wxPen(wxColour(200, 200, 200), 1, wxPenStyle::wxPENSTYLE_SHORT_DASH));
-
-  for (int i = 0; i < _grid.maxcr; i++) {
-    if (i < _grid.hLines.size()) {
-      const auto &h = _grid.hLines[i];
+  bdc.SetPen(_grid.style());
+  auto &vLines = _grid.vLines();
+  auto &hLines = _grid.hLines();
+  for (int i = 0; i < _grid.maxcr(); i++) {
+    if (i < hLines.size()) {
+      const auto &h = hLines[i];
       bdc.DrawLine(h.p1, h.p2);
     }
-    if (i < _grid.vLines.size()) {
-      const auto &v = _grid.vLines[i];
+    if (i < vLines.size()) {
+      const auto &v = vLines[i];
       bdc.DrawLine(v.p1, v.p2);
     }
   }
 }
 
-void PlotWidget::drawLables(wxDC &bdc) noexcept {
+void PlotWidget::drawLables(wxBufferedDC &bdc) noexcept {
   for (auto &xlabel : _labels.xLabel) {
     bdc.DrawText(xlabel.value, xlabel.position);
   }
@@ -154,6 +160,8 @@ void PlotWidget::scalePlot() noexcept {
     _drawRegion.Update(_border, _windowSize);
 
     computeTransformationMatrices();
+
+    _zeroPos = toPixel(Eigen::Vector3d(0, 0, 1));
 
     Eigen::Vector3d px;
 
@@ -173,7 +181,7 @@ void PlotWidget::computeTransformationMatrices() noexcept {
   _sx = _drawRegion.width / _scale.xSpan();
   _sy = -1.0 * _drawRegion.height / _scale.ySpan();
   _offx = (double)_drawRegion.x;
-  _offy = (double)_drawRegion.y + (_drawRegion.height / 2.0);
+  _offy = (double)_drawRegion.y + abs(_scale.yMax() * abs(_sy));
 }
 
 Eigen::Vector3d PlotWidget::toPixel(const Eigen::Vector3d &data) noexcept {

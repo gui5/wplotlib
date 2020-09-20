@@ -38,5 +38,8 @@ private:
   PDataSet createSineWave(double amplitute, double frequency, double phase,
                           int samplesCount);
 
+  PDataSet CreatePulseDcWave(double amplitute, double frequency, double phase,
+                             int samplesCount);
+
   void buildMenu() noexcept;
 };

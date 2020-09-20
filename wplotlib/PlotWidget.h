@@ -61,9 +61,6 @@ struct CrossHairStyle {};
 
 struct WindoStyle {};
 
-enum class DataPointType { circle, square, triangle };
-enum class DataLineType { contunuous, dots, dash, longdash };
-
 struct PlotStyle {
   wxColour windowColor;
   wxColour backgroundColor;
@@ -71,14 +68,11 @@ struct PlotStyle {
   wxColour dotColor;
   wxColour borderColor;
   wxColour crossHairColor;
-  DataPointType dotType;
-  DataLineType lineType;
 
   PlotStyle()
       : windowColor(255, 255, 255), backgroundColor(255, 255, 220),
         lineColor(0, 0, 255), dotColor(0, 0, 255), borderColor(0, 0, 0),
-        crossHairColor(0, 200, 0), dotType(DataPointType::square),
-        lineType(DataLineType::contunuous) {}
+        crossHairColor(0, 200, 0) {}
   ~PlotStyle() = default;
 };
 
@@ -123,50 +117,117 @@ struct DrawRegion {
   ~DrawRegion() = default;
 };
 
-enum class GridLineType { contunous, dot, dash, longdash };
+struct PlotGridStyle {
+public:
+  PlotGridStyle(const wxColour &color, const wxPenStyle &penStyle,
+                int lineThickness)
+      : _color(color), _penStyle(penStyle), _lineThickness(lineThickness),
+        _pen(color, lineThickness, penStyle) {}
+  PlotGridStyle()
+      : _color(200, 200, 200), _lineThickness(1),
+        _penStyle(wxPenStyle::wxPENSTYLE_SHORT_DASH) {
+    recomputePen();
+  }
+
+  ~PlotGridStyle() = default;
+
+  void setColor(const wxColour &color) noexcept {
+    _color = color;
+    recomputePen();
+  }
+
+  void setLineThickness(int value) noexcept {
+    _lineThickness = value;
+    recomputePen();
+  }
+
+  void setPenStyle(const wxPenStyle &penStyle) noexcept {
+    _penStyle = penStyle;
+    recomputePen();
+  }
+
+  void setPen(const wxPen &pen) noexcept { _pen = pen; }
+
+  operator wxPen &() { return _pen; }
+  wxPen &pen() noexcept { return _pen; }
+  wxColour &color() noexcept { return _color; }
+  int lineThickness() noexcept { return _lineThickness; }
+  wxPenStyle penStyle() noexcept { return _penStyle; }
+
+private:
+  wxColour _color;
+  int _lineThickness;
+  wxPenStyle _penStyle;
+  wxPen _pen;
+
+  void recomputePen() noexcept {
+    _pen = wxPen(_color, _lineThickness, _penStyle);
+  }
+};
 struct PlotGrid {
   struct Line {
-    const wxPoint p1;
-    const wxPoint p2;
+    wxPoint p1;
+    wxPoint p2;
+    Line() {}
     Line(int x1, int y1, int x2, int y2) : p1(x1, y1), p2(x2, y2) {}
     ~Line() = default;
   };
 
-  int rows;
-  int cols;
-  int maxcr;
-  std::vector<Line> hLines;
-  std::vector<Line> vLines;
+  void setRowsNumber(int value) noexcept {
+    _rows = value;
+    _maxcr = _rows > _cols ? _rows : _cols;
+  }
+
+  void setColsNumber(int value) noexcept {
+    _cols = value;
+    _maxcr = _rows > _cols ? _rows : _cols;
+  }
+
+  void setStyle(const PlotGridStyle &value) noexcept { _style = value; }
 
   void update(const DrawRegion &drawRegion) {
-    const int xSpacing = drawRegion.width / cols;
-    const int ySpacing = drawRegion.height / rows;
+    const int xSpacing = drawRegion.width / _cols;
+    const int ySpacing = drawRegion.height / _rows;
     int cx = 0;
     int cy = 0;
 
-    hLines.clear();
-    vLines.clear();
+    _hLines.clear();
+    _vLines.clear();
 
-    for (int i = 0; i < rows; i++) {
+    for (int i = 0; i <= _rows; i++) {
       cy = drawRegion.y + ySpacing * i;
-      hLines.emplace_back(drawRegion.x, cy, drawRegion.width + drawRegion.x,
-                          cy);
+      _hLines.emplace_back(drawRegion.x, cy, drawRegion.width + drawRegion.x,
+                           cy);
     }
 
-    for (int i = 0; i < cols; i++) {
+    for (int i = 0; i <= _cols; i++) {
       cx = drawRegion.x + xSpacing * i;
-      vLines.emplace_back(cx, drawRegion.y, cx,
-                          drawRegion.height + drawRegion.y);
+      _vLines.emplace_back(cx, drawRegion.y, cx,
+                           drawRegion.height + drawRegion.y);
     }
   }
 
-  PlotGrid(int rows, int cols, const DrawRegion &drawRegion)
-      : rows(rows), cols(cols) {
-    update(drawRegion);
-    maxcr = rows > cols ? rows : cols;
+  PlotGrid(int rows, int cols, const PlotGridStyle &style)
+      : _rows(rows), _cols(cols), _style(style) {
+    _maxcr = rows > cols ? rows : cols;
   }
 
   ~PlotGrid() = default;
+
+  int rows() noexcept { return _rows; }
+  int cols() noexcept { return _cols; }
+  int maxcr() noexcept { return _maxcr; }
+  const std::vector<Line> &vLines() const noexcept { return _vLines; }
+  const std::vector<Line> &hLines() const noexcept { return _hLines; }
+  PlotGridStyle &style() noexcept { return _style; }
+
+private:
+  int _rows;
+  int _cols;
+  int _maxcr;
+  std::vector<Line> _hLines;
+  std::vector<Line> _vLines;
+  PlotGridStyle _style;
 };
 
 struct LabelStyle {
@@ -193,24 +254,27 @@ struct PlotLabel {
   LabelStyle xLabelStyle;
   LabelStyle yLabelStyle;
 
-  void cacheLabels(const PlotGrid &grid,
-                   Eigen::Matrix3d &pixelTransformMatrix) noexcept {
+  void cacheLabels(const PlotGrid &grid, Eigen::Matrix3d &pixelTransformMatrix,
+                   const PlotScale &scale) noexcept {
 
     auto m = pixelTransformMatrix.inverse();
+
     xLabel.clear();
     yLabel.clear();
     Eigen::Vector3d val;
-    for (auto &x : grid.vLines) {
+    auto &vLines = grid.vLines();
+
+    for (auto &x : grid.vLines()) {
       val = m * Eigen::Vector3d(x.p2.x, x.p2.y, 1.0);
       auto &pos = x.p2;
-      xLabel.emplace_back(wxPoint(pos.x - 20, pos.y),
+      xLabel.emplace_back(wxPoint(pos.x - 15, pos.y),
                           fmt::format("{:.3f}", val(0)));
     }
 
-    for (auto &y : grid.hLines) {
+    for (auto &y : grid.hLines()) {
       val = m * Eigen::Vector3d(y.p1.x, y.p1.y, 1.0);
       auto &pos = y.p1;
-      yLabel.emplace_back(wxPoint(pos.x - 50, pos.y-10),
+      yLabel.emplace_back(wxPoint(pos.x - 40, pos.y - 10),
                           fmt::format("{:+.3f}", val(1)));
     }
   }
@@ -228,6 +292,7 @@ public:
   void setDataSet(PDataSet dataset) noexcept;
   PDataSet getDataSet() noexcept;
   void enableGrid(bool value = false) noexcept;
+  void setGrid(const PlotGrid &grid) noexcept;
   void enableCrossHair(bool value = false) noexcept;
   void setPlotScale(const PlotScale &scale) noexcept;
 
@@ -244,6 +309,8 @@ private:
   DrawRegion _drawRegion;
 
   wxPoint _mousePos;
+
+  Eigen::Vector3d _zeroPos;
 
   /*
     transformation Matrices
@@ -286,7 +353,7 @@ private:
   void drawData(wxBufferedDC &bdc) noexcept;
   void drawCrosshair(wxBufferedDC &bdc) noexcept;
   void drawGrid(wxBufferedDC &bdc) noexcept;
-  void drawLables(wxDC &bdc) noexcept;
+  void drawLables(wxBufferedDC &bdc) noexcept;
 
   // Transformation functions
 

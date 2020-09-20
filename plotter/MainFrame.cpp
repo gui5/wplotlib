@@ -11,7 +11,8 @@ MainFrame::MainFrame()
 
   _plot = new PlotWidget(this);
   _plot->setDataSet(createSineWave(1, 10, 0, 200));
-  _plot->setPlotScale(PlotScale(0, 1, -2, 2));
+  _plot->setPlotScale(PlotScale(0, 1, 0, 3));
+  _plot->setGrid(PlotGrid(12, 10, PlotGridStyle()));
 
   wxBoxSizer *topsizer = new wxBoxSizer(wxVERTICAL);
 
@@ -48,7 +49,7 @@ void MainFrame::OnMenuSelected(wxCommandEvent &event) noexcept {
 
 void MainFrame::OnPlotMouseHover(MouseHoverEvent &event) noexcept {
   const auto data = event.data;
-  SetStatusText(fmt::format("({:f} , {:f})",data.x, data.y), 1);
+  SetStatusText(fmt::format("({:f} , {:f})", data.x, data.y), 1);
 }
 
 PDataSet MainFrame::createSineWave(double amplitute, double frequency,
@@ -64,6 +65,23 @@ PDataSet MainFrame::createSineWave(double amplitute, double frequency,
         i * sampleInterval,
         amplitute *
             sin(2.0 * pi * frequency * i * sampleInterval + (phase * pi / 180)),
+        1.0));
+  }
+  return dataset;
+}
+
+PDataSet MainFrame::CreatePulseDcWave(double amplitute, double frequency,
+                                      double phase, int samplesCount) {
+  const double pi = 3.1415926535;
+  const double sampleInterval = 1.0 / (20 * frequency);
+
+  auto dataset = DataSetBuilder::createDataSet(samplesCount, sampleInterval);
+
+  for (int i = 0; i < samplesCount; i++) {
+    dataset->insert(Eigen::Vector3d(
+        i * sampleInterval,
+        abs(amplitute * sin(2.0 * pi * frequency * i * sampleInterval +
+                            (phase * pi / 180))),
         1.0));
   }
   return dataset;
