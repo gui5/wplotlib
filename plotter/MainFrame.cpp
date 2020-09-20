@@ -11,7 +11,7 @@ MainFrame::MainFrame()
 
   _plot = new PlotWidget(this);
   _plot->setDataSet(createSineWave(1, 10, 0, 200));
-  _plot->setPlotScale(PlotScale(0, 1, 0, 3));
+  _plot->setPlotScale(PlotScale(0, 1, -3, 3));
   _plot->setGrid(PlotGrid(12, 10, PlotGridStyle()));
 
   wxBoxSizer *topsizer = new wxBoxSizer(wxVERTICAL);
