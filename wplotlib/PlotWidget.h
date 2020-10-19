@@ -1,7 +1,7 @@
 #pragma once
 #include "DataSet.h"
 #include "PlotEvent.h"
-#include <Eigen/Eigen>
+#include <eigen3/Eigen/Eigen>
 #include <atomic>
 #include <fmt/format.h>
 #include <string>

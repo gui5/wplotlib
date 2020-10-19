@@ -3,7 +3,7 @@
 #include <cmath>
 #include <memory>
 #include <vector>
-#include <Eigen/Eigen>
+#include <eigen3/Eigen/Eigen>
 
 
 class DataSet {
