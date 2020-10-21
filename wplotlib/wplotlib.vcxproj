@@ -144,13 +144,20 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="border.h" />
     <ClInclude Include="DataSet.h" />
+    <ClInclude Include="data_set.h" />
+    <ClInclude Include="line.h" />
     <ClInclude Include="Lock.h" />
     <ClInclude Include="PlotEvent.h" />
     <ClInclude Include="PlotWidget.h" />
+    <ClInclude Include="point.h" />
+    <ClInclude Include="point_cast.h" />
+    <ClInclude Include="style.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DataSet.cpp" />
+    <ClCompile Include="data_set.cpp" />
     <ClCompile Include="PlotWidget.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

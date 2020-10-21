@@ -13,6 +13,21 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Panels">
+      <UniqueIdentifier>{4efabe22-9620-4834-ae21-2db54c8f74f6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Style">
+      <UniqueIdentifier>{2575807d-c393-4cbc-9f60-5316351e23e4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="point">
+      <UniqueIdentifier>{f4033410-535b-4916-8b92-c45a85e8f70d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="line">
+      <UniqueIdentifier>{818a8da4-6c62-4e1a-8b7d-e0ecfa96cea5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="data_set">
+      <UniqueIdentifier>{856d6cb8-e39c-48ff-9b80-d49d9ed67d17}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="PlotWidget.h">
@@ -27,6 +42,24 @@
     <ClInclude Include="PlotEvent.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="style.h">
+      <Filter>Style</Filter>
+    </ClInclude>
+    <ClInclude Include="border.h">
+      <Filter>Style</Filter>
+    </ClInclude>
+    <ClInclude Include="point.h">
+      <Filter>point</Filter>
+    </ClInclude>
+    <ClInclude Include="point_cast.h">
+      <Filter>point</Filter>
+    </ClInclude>
+    <ClInclude Include="line.h">
+      <Filter>line</Filter>
+    </ClInclude>
+    <ClInclude Include="data_set.h">
+      <Filter>data_set</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="PlotWidget.cpp">
@@ -34,6 +67,9 @@
     </ClCompile>
     <ClCompile Include="DataSet.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="data_set.cpp">
+      <Filter>data_set</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
