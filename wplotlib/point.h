@@ -1,5 +1,8 @@
 #pragma once
 #include <type_traits>
+#include <cmath>
+
+#include <set>
 
 namespace wpl {
 template <class T>
@@ -17,5 +20,25 @@ struct point_t {
         x(x), y(y) {}
 
     ~point_t() = default;
+
+    bool operator==(const point_t<T>& obj)const noexcept {
+        return (x == obj.x && y == obj.y);
+    }
+
+    bool operator<(const point_t<T>& obj)const noexcept {
+        return hypot(x, y) < hypot(obj.x, obj.y);
+    }
+
+    bool operator>(const point_t<T>& obj)const noexcept {
+        return hypot(x, y) > hypot(obj.x, obj.y);
+    }
+
+    bool operator<=(const point_t<T>& obj)const noexcept {
+        return hypot(x, y) <= hypot(obj.x, obj.y);
+    }
+
+    bool operator>=(const point_t<T>& obj)const noexcept {
+        return hypot(x, y) >= hypot(obj.x, obj.y);
+    }
 };
 }

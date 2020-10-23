@@ -147,6 +147,9 @@
     <ClInclude Include="border.h" />
     <ClInclude Include="DataSet.h" />
     <ClInclude Include="data_set.h" />
+    <ClInclude Include="grid.h" />
+    <ClInclude Include="label.h" />
+    <ClInclude Include="scale.h" />
     <ClInclude Include="line.h" />
     <ClInclude Include="Lock.h" />
     <ClInclude Include="PlotEvent.h" />
@@ -157,7 +160,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DataSet.cpp" />
-    <ClCompile Include="data_set.cpp" />
     <ClCompile Include="PlotWidget.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

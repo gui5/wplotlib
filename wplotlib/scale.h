@@ -1,16 +1,7 @@
 #pragma once
 namespace wpl {
 
-struct scale_t
-{
-    float max;
-    float min;
-
-    scale_t(float max = 10.0, float min = -10.0) :
-        max(max), min(min) {}
-
-    ~scale_t() = default;
-};
+using scale_t = point_t<float>;
 
 class axis_scale_t {
 public:
@@ -20,30 +11,43 @@ public:
     axis_scale_t() = default;
     ~axis_scale_t() = default;
 
-    void set_x_scale(const scale_t & value)noexcept {
+    axis_scale_t& set_x_scale(const scale_t& value) noexcept {
         _x = value;
+        return *this;
     }
 
-    void set_x_scale(float x, float y)noexcept {
+    axis_scale_t& set_x_scale(scale_t&& value) noexcept {
+        _x = value;
+        return *this;
+    }
+
+    axis_scale_t& set_x_scale(float x, float y)noexcept {
         _x = scale_t(x, y);
+        return *this;
     }
 
-    void set_y_scale(const scale_t& value)noexcept {
+    axis_scale_t& set_y_scale(const scale_t& value)noexcept {
         _y = value;
+        return *this;
     }
 
-    void set_y_scale(float x, float y)noexcept {
+    axis_scale_t& set_y_scale(scale_t&& value)noexcept {
+        _y = value;
+        return *this;
+    }
+
+    axis_scale_t& set_y_scale(float x, float y)noexcept {
         _y = scale_t(x, y);
+        return *this;
     }
 
-    const scale_t& x()noexcept {
-        return _x;
-    }
-
-    const scale_t& y()noexcept {
+    const scale_t& y()const noexcept {
         return _y;
     }
 
+    const scale_t& x()const noexcept {
+        return _x;
+    }
 
 private:
     scale_t _x;

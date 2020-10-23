@@ -28,6 +28,15 @@
     <Filter Include="data_set">
       <UniqueIdentifier>{856d6cb8-e39c-48ff-9b80-d49d9ed67d17}</UniqueIdentifier>
     </Filter>
+    <Filter Include="scale">
+      <UniqueIdentifier>{e2603311-b1ef-473e-b518-5be1fd349a99}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="label">
+      <UniqueIdentifier>{5155639a-bcb4-48f8-9a71-116fd622f56b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="grid">
+      <UniqueIdentifier>{b3d8e319-8e5e-4976-be68-1a2c0261fd46}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="PlotWidget.h">
@@ -60,6 +69,15 @@
     <ClInclude Include="data_set.h">
       <Filter>data_set</Filter>
     </ClInclude>
+    <ClInclude Include="scale.h">
+      <Filter>scale</Filter>
+    </ClInclude>
+    <ClInclude Include="label.h">
+      <Filter>label</Filter>
+    </ClInclude>
+    <ClInclude Include="grid.h">
+      <Filter>grid</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="PlotWidget.cpp">
@@ -67,9 +85,6 @@
     </ClCompile>
     <ClCompile Include="DataSet.cpp">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="data_set.cpp">
-      <Filter>data_set</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
