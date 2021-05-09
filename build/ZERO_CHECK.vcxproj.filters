@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\olive\source\repos\wplotlib\build\CMakeFiles\b57091761b9365d92a7c7637365c714f\generate.stamp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{01487DFB-4577-3905-B739-D3D614FBC75C}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
